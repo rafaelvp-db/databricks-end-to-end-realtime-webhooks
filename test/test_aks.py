@@ -3,7 +3,7 @@ import requests
 import statistics
 import time
 
-url = "http://20.31.226.14/predict"
+url = "http://YOUR_K8S_EXTERNAL_IP/predict"
 
 def simulate_requests(n_call_cycles = 1):
 
