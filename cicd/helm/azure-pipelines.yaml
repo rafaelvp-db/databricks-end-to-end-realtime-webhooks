@@ -1,0 +1,31 @@
+trigger:
+  none
+
+variables:
+- group: modelVariableGroup
+- name: serviceConnection
+  value: 'sc_aks'
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: DryRun
+    displayName: Dry run
+
+    jobs:
+      - job: InstallDependencies
+        displayName: Install Dependencies
+        steps:
+          - script: |
+              
+            displayName: 'Download and install Dependencies'
+          - script: |
+            displayName: AZ Login
+      - job: Deploy
+        displayName: Deploy Helm Chart
+        steps:
+        - script: ""
+          displayName: Helm dry run
+        - script: ""
+          displayName: Helm install

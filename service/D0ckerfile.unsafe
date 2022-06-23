@@ -1,0 +1,12 @@
+FROM python:latest
+
+COPY ./requirements_api.txt /tmp/requirements_api.txt
+COPY ./ml_artifacts/model/requirements.txt /tmp/requirements_model.txt
+RUN mkdir /model && mkdir /app
+COPY ./ml_artifacts/model /model
+COPY ./app /app
+
+RUN pip install --no-cache-dir --upgrade -r /tmp/requirements_api.txt \
+    && pip install --no-cache-dir -r /tmp/requirements_model.txt
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]

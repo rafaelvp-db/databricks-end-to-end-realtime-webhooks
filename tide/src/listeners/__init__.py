@@ -1,0 +1,1 @@
+from azure import trigger

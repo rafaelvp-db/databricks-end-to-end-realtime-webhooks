@@ -1,0 +1,67 @@
+trigger:
+  paths:
+    include:
+    - functions
+
+variables:
+  # Azure service connection established during pipeline creation
+  azureSubscription: 'sc_mlflow_test'
+  appName: $(AZURE_FUNCTION_APP)
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+  workingDirectory: $(System.DefaultWorkingDirectory)/functions/
+
+stages:
+- stage: Build
+  displayName: Build stage
+
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: UsePythonVersion@0
+      displayName: "Setting python version to 3.7 as required by functions"
+      inputs:
+        versionSpec: '3.7'
+        architecture: 'x64'
+    - bash: |
+        pip install --target="./.python_packages/lib/site-packages" -r ./requirements.txt
+      workingDirectory: $(workingDirectory)
+      displayName: 'Install application dependencies'
+    - task: ArchiveFiles@2
+      displayName: "Archive files"
+      inputs:
+        rootFolderOrFile: $(workingDirectory)
+        includeRootFolder: false
+        archiveFile: "$(System.DefaultWorkingDirectory)/build$(Build.BuildId).zip"
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/build$(Build.BuildId).zip'
+        artifactName: 'drop'
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'development'
+    pool:
+      vmImage: $(vmImageName)
+
+    strategy:
+      runOnce:
+        deploy:
+
+          steps:
+          - task: AzureFunctionApp@1
+            displayName: 'Azure functions app deploy'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: functionAppLinux
+              appName: $(appName)
+              package: '$(Pipeline.Workspace)/drop/build$(Build.BuildId).zip'

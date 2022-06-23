@@ -1,0 +1,8 @@
+resource_group_name = ""
+location = ""
+identity_name = ""
+kv_name = ""
+registry_name = ""
+aks_dns_prefix = ""
+aks_cluster_name = ""
+log_analytics_ws_name = ""

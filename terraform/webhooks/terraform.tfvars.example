@@ -1,0 +1,7 @@
+resource_group_name = ""
+location = ""
+db_workspace_url = ""
+kv_name = ""
+ado_pat_token = ""
+ado_organization_url = ""
+ado_project_name = ""

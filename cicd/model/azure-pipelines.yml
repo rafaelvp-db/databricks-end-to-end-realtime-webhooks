@@ -1,0 +1,117 @@
+trigger:
+  none
+
+variables:
+- group: modelVariableGroup
+- name: modelName
+  value: $(model_name)
+- name: webhookId
+  value: $(webhook_id)
+- name: modelVersion
+  value: $(version)
+- name: dockerRegistrySc
+  value: $(registryServiceConnection) #'sc_mlflow_docker'
+- name: acrRegistry
+  value: $(acrRegistryName) #'acrakstestrvp'
+
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Build
+    displayName: Build
+
+    jobs:
+      - job: PreChecks
+        displayName: Docker Image Pre-Checks
+        steps:
+          - script: |
+              sudo apt-get install wget apt-transport-https gnupg lsb-release
+              wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+              echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+              sudo apt-get update
+              sudo apt-get install trivy
+              trivy -v
+            displayName: 'Download and install Trivy'
+          - script: trivy fs --security-checks vuln,secret,config --exit-code 1 ./service
+            displayName: Trivy Security & Vulnerability check
+      - job: Download
+        displayName: Download & Package Artifacts
+        steps:
+        - script: "echo 'Model name: $(modelName), webhook_id: $(webhookId)'"
+          displayName: 'Display model info'
+        - task: UsePythonVersion@0
+          displayName: "Set Python to 3.7 x64"
+          inputs:
+            versionSpec: '3.7'
+            architecture: 'x64'
+        - bash: |
+            pip install mlflow
+          displayName: "Install MLflow"
+        - task: PythonScript@0
+          displayName: "Download model artifacts"
+          inputs:
+            scriptSource: 'inline'
+            script: |
+              import os
+              from mlflow.tracking import MlflowClient
+              client = MlflowClient()
+              model_version = client.get_model_version(
+                name = os.environ["MODEL_NAME"],
+                version = os.environ["MODEL_VERSION"]
+              )
+              run_id = model_version.run_id
+              # Download the artifact to local storage.
+              local_dir = "ml_artifacts"
+              remote_dir = "model"
+              os.mkdir(local_dir)
+              local_path = client.download_artifacts(run_id, remote_dir, local_dir)
+              full_path = f"{local_dir}/{remote_dir}"
+              print(f"Artifacts downloaded in {full_path}: {os.listdir(full_path)}")
+          env:
+            DATABRICKS_HOST: "$(dbhost)"
+            DATABRICKS_TOKEN: "$(dbpattoken)"
+            MLFLOW_TRACKING_URI: databricks
+            MODEL_NAME: $(modelName)
+            MODEL_VERSION: $(modelVersion)
+        - task: CopyFiles@2
+          displayName: 'Copy model artifacts to Service Layer'
+          inputs:
+            contents: 'ml_artifacts/model/**'
+            targetFolder: '$(System.DefaultWorkingDirectory)/service/'
+        - task: CopyFiles@2
+          displayName: 'Copy Docker Image to Artifact Staging'
+          inputs:
+            contents: '$(System.DefaultWorkingDirectory)/service/**'
+            targetFolder: '$(Build.ArtifactStagingDirectory)'
+        - publish: '$(Build.ArtifactStagingDirectory)'
+          displayName: 'Publish model artifacts'
+          artifact: dropDocker
+        - bash: |
+            ls -all $(Build.ArtifactStagingDirectory)/service
+          displayName: List staged artifacts
+  - stage: Push
+    displayName: Push
+    jobs:
+      - job: BuildReleaseDocker
+        displayName: Build & Deploy Docker image
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              source: 'current'
+              artifact: dropDocker
+              path: '$(Pipeline.Workspace)'
+          - bash: |
+              ls -all $(Pipeline.Workspace)/service/ml_artifacts/model
+            displayName: List downloaded artifacts
+          - task: Docker@2
+            displayName: Build
+            inputs:
+              command: buildAndPush
+              repository: $(modelName)
+              tags: $(modelVersion)
+              containerRegistry: $(dockerRegistrySc)
+              buildContext: '$(Pipeline.Workspace)/service'
+          
+
