@@ -1,5 +1,5 @@
 # MLflow Webhooks End-to-End Template
-**24-06-2022 Update:** I've created a [public version](https://github.com/rafaelvp-db/databricks-end-to-end-realtime-webhooks) of this repo. Feel free to share it with customers!
+
 ## Realtime Prediction Endpoints
 
 ## Motivation
