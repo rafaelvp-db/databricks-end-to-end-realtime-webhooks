@@ -16,11 +16,11 @@
 
 ## Architecture
 
-<img src="https://github.com/databricks/end-to-end-realtime-webhooks/blob/main/img/architecture.png?raw=true" />
+<img src="https://github.com/rafaelvp-db/databricks-end-to-end-realtime-webhooks/blob/master/img/architecture.png?raw=true" />
 
 ## Workflow
 
-<img src="https://github.com/databricks/end-to-end-realtime-webhooks/blob/main/img/workflow.png?raw=true" />
+<img src="https://github.com/rafaelvp-db/databricks-end-to-end-realtime-webhooks/blob/master/img/workflow.png?raw=true" />
 
 ## Instructions
 
