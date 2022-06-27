@@ -1,9 +1,9 @@
 import json
+import os
 import requests
 import statistics
 import time
 
-url = "http://YOUR_K8S_EXTERNAL_IP/predict"
 
 def simulate_requests(n_call_cycles = 1):
 
@@ -38,6 +38,8 @@ def simulate_requests(n_call_cycles = 1):
     }
 
     call_times = []
+    ip_address = os.environ["IP_ADDRESS"]
+    url = f"http://{ip_address}/predict"
 
     for i in range(0, n_call_cycles):
 
